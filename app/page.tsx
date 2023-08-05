@@ -3,6 +3,7 @@ import { cookies } from 'next/dist/client/components/headers'
 import AuthButtonServer from './auth-button-server';
 import { redirect } from 'next/navigation';
 import NewTweet from './new-tweet';
+import Likes from './likes';
 
 
 export default async function Home() {
@@ -15,15 +16,30 @@ export default async function Home() {
   }
 
 
-  const { data: tweets } = await supabase.from("tweets").
-select("*, profiles(*)");
+  const { data} = await supabase.from("tweets").
+select("*, profiles(*), likes(*)");
 
+const tweets = data?.map((tweet) => ({
+  ...tweet,
+  user_has_liked_tweet: !!tweet.likes.find(
+    (like) => like.user_id === session.user.id
+  ),
+  likes: tweet.likes.length,
+})) ?? [];
 
   return (
     <>
     <AuthButtonServer/>
     <NewTweet/>
-    <pre>{JSON.stringify(tweets, null, 2)}</pre>
+    {tweets?.map(tweet => (
+      <div key={tweet.id}>
+        <p>
+          {tweet?.profiles?.name} {tweet?.profiles?.username}
+        </p>
+        <p>{tweet.title}</p>
+        <Likes tweet={tweet} />
+      </div>
+    ))}
     </>
-  )
+  );
 }
